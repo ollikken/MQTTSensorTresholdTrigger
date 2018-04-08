@@ -17,7 +17,7 @@ Helpfull information
 
 # MQTT
 
-I used the MQTT Net project to subscribe to the sensor value.
+I used the MQTT Net project to subscribe to the sensor value. The version used is 2.6.0 since 2.7.3 seems to have a bug. One of the threads keep exciting after two received messages. Will try to investigate that.
 https://github.com/chkr1011/MQTTnet/wiki/Client
 
 This was after I discovered that eclipse m2mqtt does not have .NET Core support yet.
