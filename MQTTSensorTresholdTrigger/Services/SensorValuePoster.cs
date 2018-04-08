@@ -8,8 +8,24 @@ using Newtonsoft.Json.Serialization;
 
 namespace MQTTSensorTresholdTrigger.Services
 {
+    /// <summary>
+    /// Defines types of messages for posting
+    /// </summary>
+    public enum SensorValuePosterMessageTypes
+    {
+        ThresholdExceeded,
+    }
     public class SensorValuePoster
     {
+        /// <summary>
+        /// Dictionary of messages
+        /// </summary>
+        private Dictionary<SensorValuePosterMessageTypes, string> messages =
+            new Dictionary<SensorValuePosterMessageTypes, string>()
+            {
+                {SensorValuePosterMessageTypes.ThresholdExceeded, "Treshold value exceeded"}
+            };
+
         private HttpClient client;
 
         private string url;
@@ -25,10 +41,14 @@ namespace MQTTSensorTresholdTrigger.Services
             this.client = new HttpClient();
         }
 
+        /// <summary>
+        /// Post treshold Exceeded
+        /// </summary>
+        /// <param name="sensorValue"></param>
         public async void PostTresholdValueExceeded(SensorValue sensorValue)
         {
             var postObject = new SensorValuePost(sensorValue,
-                SensorValuePosterMessages.Messages[SensorValuePosterMessagesIndexes.ThresholdExceeded]);
+                messages[SensorValuePosterMessageTypes.ThresholdExceeded]);
 
             var json = JsonConvert.SerializeObject(postObject,new JsonSerializerSettings
             {
@@ -38,21 +58,7 @@ namespace MQTTSensorTresholdTrigger.Services
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var result = await client.PostAsync(Url, content);
             if(!result.IsSuccessStatusCode)
-                Console.WriteLine($"SensorValuePoster failed to post {SensorValuePosterMessagesIndexes.ThresholdExceeded}");
+                Console.WriteLine($"SensorValuePoster failed to post {SensorValuePosterMessageTypes.ThresholdExceeded}");
         }
-    }
-
-    public enum SensorValuePosterMessagesIndexes
-    {
-        ThresholdExceeded,
-    }
-
-    public static class SensorValuePosterMessages
-    {
-        public static Dictionary<SensorValuePosterMessagesIndexes, string> Messages =
-            new Dictionary<SensorValuePosterMessagesIndexes, string>()
-            {
-                {SensorValuePosterMessagesIndexes.ThresholdExceeded, "Treshold value exceeded"}
-            };
     }
 }

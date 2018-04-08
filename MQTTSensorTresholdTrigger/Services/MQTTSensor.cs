@@ -75,18 +75,45 @@ namespace MQTTSensorTresholdTrigger.Services
                 sensorValueThreshold = value;
             }
         }
-
+        
         /// <summary>
-        /// Event called when CurrentValue surpasses SensorValueTreshold.
-        /// Will only trigger if CurrentValue has been below SensorValueTreshold for the lst 5 min
+        /// Event called once for each time CurrentValue exceeds SensorValueTreshold for 5 minutes or more.
+        /// If triggered once it will only retrigger if sensor value also has been below treshold for 5 minutes or more.
         /// </summary>
         public EventHandler<SensorValueTresholdExceededEventArgs> SensorThresholdExceeded;
 
-        private bool sensorTresholdExceededTriggerable
+        /// <summary>
+        /// Used to trigger event when never triggered before and value has not been below treshold for 5 minutes
+        /// </summary>
+        private bool sensorThresholdExceededEventNeverTriggered = true;
+
+        /// <summary>
+        /// Used to only trigger once when triggerable expression is true
+        /// </summary>
+        private bool sensorTresholdExceededEventTriggered = true;
+
+        /// <summary>
+        /// Used to restart and stop timers
+        /// </summary>
+        private bool previousSensorValueExceededTreshold;
+
+        /// <summary>
+        /// Detremines if the exceeded treshold event can be triggered
+        /// </summary>
+        private bool sensorTresholdExceededEventTriggerable
         {
-            get { return sensorTresholdExceededStopwatch.ElapsedMilliseconds > (5 * 60 * 1000); }
+            get { return sensorValueExceededTresholdStopwatch.ElapsedMilliseconds > (5 * 60 * 1000) && (sensorValueBelowTresholdStopWatch.ElapsedMilliseconds > 5 * 60 * 1000 || sensorThresholdExceededEventNeverTriggered) && !sensorTresholdExceededEventTriggered; }
         }
-        private Stopwatch sensorTresholdExceededStopwatch = new Stopwatch();
+
+        /// <summary>
+        /// Determines if value has been above the treshold for 5 minutes
+        /// </summary>
+        private Stopwatch sensorValueExceededTresholdStopwatch = new Stopwatch();
+
+        /// <summary>
+        /// Determines if value has been below the treshold for 5 minutes
+        /// </summary>
+        private Stopwatch sensorValueBelowTresholdStopWatch = new Stopwatch();
 
         /// <summary>
         /// Create a new MQTTSensor that will subscribe to the specified topic
@@ -109,7 +136,6 @@ namespace MQTTSensorTresholdTrigger.Services
             client.Disconnected += Client_Disconnected;
             client.ApplicationMessageReceived += Client_ApplicationMessageReceived;
             client.ConnectAsync(clientOptions);
-            sensorTresholdExceededStopwatch.Restart();
         }
 
         /// <summary>
@@ -124,6 +150,44 @@ namespace MQTTSensorTresholdTrigger.Services
             client.Disconnected -= Client_Disconnected;
             client.ApplicationMessageReceived -= Client_ApplicationMessageReceived;
             client = null;
+        }
+
+        /// <summary>
+        /// Run logic for executing sensor treshold exceeded event
+        /// </summary>
+        private void processThresholdExceededLogic()
+        {
+            if (CurrentValue.Value > sensorValueThreshold)
+            {
+                if (!previousSensorValueExceededTreshold)
+                {
+                    //previous value was below threshold restart exceeded threshold timer and stop below timer
+                    sensorValueExceededTresholdStopwatch.Restart();
+                    sensorValueBelowTresholdStopWatch.Stop();
+                    sensorTresholdExceededEventTriggered = false;
+                }
+                //set the previous value exceeded threshold flag
+                previousSensorValueExceededTreshold = true;
+
+                if (sensorTresholdExceededEventTriggerable)
+                {
+                    SensorThresholdExceeded(this, new SensorValueTresholdExceededEventArgs(CurrentValue));
+                    sensorTresholdExceededEventTriggered = true;
+                    sensorThresholdExceededEventNeverTriggered = false;
+                }
+            }
+            else
+            {
+                if (previousSensorValueExceededTreshold)
+                {
+                    //previous value exceeded treshold, restart below threshold timer and stop exceeded timer
+                    sensorValueBelowTresholdStopWatch.Restart();
+                    sensorValueExceededTresholdStopwatch.Stop();
+                    sensorTresholdExceededEventTriggered = false;
+                }
+                //set the previous value exceeded threshold flag
+                previousSensorValueExceededTreshold = false;
+            }
         }
 
         /// <summary>
@@ -142,16 +206,7 @@ namespace MQTTSensorTresholdTrigger.Services
             Console.WriteLine();
 
             currentValue = JsonConvert.DeserializeObject<SensorValue>(Encoding.UTF8.GetString(e.ApplicationMessage.Payload),new JsonSerializerSettings{DateTimeZoneHandling = DateTimeZoneHandling.Utc});
-
-            if (currentValue.Value > sensorValueThreshold)
-            {
-                //if cool down period is done trigger event
-                if(sensorTresholdExceededTriggerable)
-                    SensorThresholdExceeded(this, new SensorValueTresholdExceededEventArgs(CurrentValue));
-
-                //restart cool down period
-                sensorTresholdExceededStopwatch.Restart();
-            }
+            processThresholdExceededLogic();
         }
 
         /// <summary>
