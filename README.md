@@ -23,7 +23,7 @@ https://github.com/chkr1011/MQTTnet/wiki/Client
 This was after I discovered that eclipse m2mqtt does not have .NET Core support yet.
 https://github.com/eclipse/paho.mqtt.m2mqtt/issues/10
 
-#Helpfull links
+# Other Helpfull Links
 - https://stackoverflow.com/questions/6117101/posting-jsonobject-with-httpclient-from-web-api
 - https://www.newtonsoft.com/json/help/html/SerializeDateTimeZoneHandling.htm
 
