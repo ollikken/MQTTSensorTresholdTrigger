@@ -1,4 +1,4 @@
-# MQTTSensorTresholdTrigger
+# MQTT Sensor Treshold Trigger
 
 Subsribes to an MQTT sensor and posts to a configurable URL when sensor exceeds a configurable treshold.
 
@@ -15,7 +15,7 @@ Helpfull information
 - https://docs.docker.com/engine/examples/dotnetcore/#create-a-dockerfile-for-an-aspnet-core-application
 - Dockerfile from clean visual studio aspnet core project with docker support
 
-#MQTT
+# MQTT
 
 I used the MQTT Net project to subscribe to the sensor value.
 https://github.com/chkr1011/MQTTnet/wiki/Client
